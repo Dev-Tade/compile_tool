@@ -1,0 +1,15 @@
+#
+# rgl layout text file (v4.0) - raygui layout file generated using rGuiLayout
+#
+# Number of controls:     4
+#
+# Ref. window:    r <x> <y> <width> <height>
+# Anchor info:    a <id> <name> <posx> <posy> <enabled>
+# Control info:   c <id> <type> <name> <rectangle> <anchor_id> <text>
+#
+r 0 40 800 650
+a 001 MenuAnchor 0 0 1
+c 000 0 MenuWindow 0 0 800 72 1 Compiler Tool
+c 001 5 FilesButton 8 32 152 32 1 Files
+c 002 5 CompilerButton 168 32 152 32 1 Compiler
+c 003 5 OutputButton 328 32 152 32 1 Output

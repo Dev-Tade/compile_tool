@@ -1,0 +1,15 @@
+#
+# rgl layout text file (v4.0) - raygui layout file generated using rGuiLayout
+#
+# Number of controls:     4
+#
+# Ref. window:    r <x> <y> <width> <height>
+# Anchor info:    a <id> <name> <posx> <posy> <enabled>
+# Control info:   c <id> <type> <name> <rectangle> <anchor_id> <text>
+#
+r 0 40 -1 -1
+a 001 FilesWindowAnchor 24 96 1
+c 000 0 FilesWindow 0 0 280 392 1 Files
+c 001 4 TracekdFilesLabel 8 32 264 32 1 Tracked Files (Drop into window to add)
+c 002 21 FilesList 8 72 264 264 1 ONE;TWO;THREE
+c 003 5 UntrackFileButton 8 344 264 40 1 Untrack selected file
