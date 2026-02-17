@@ -37,6 +37,8 @@ int main()
   GuiFilesWindowState files_window = InitGuiFilesWindow();
   GuiCompilerWindowState compiler_window = InitGuiCompilerWindow();
 
+  bool output_window = true;
+
   Rectangle drag_handle = app_menu.layoutRecs[0];
   drag_handle.height = 24; // RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT
   bool dragging_window = false;
@@ -51,8 +53,19 @@ int main()
   FilePathList trackedFiles = AllocFilePathList(TRACKED_FILE_PATH_SIZE, TRACKED_FILES_CAPACITY);
   int newlyTrackedFiles = 0;
 
-  char compile_command[4096] = {0};
+  char compile_command[2048] = {0};
   int compile_command_pos = 0;
+
+  char command_output[4096] = {0};
+
+  Rectangle output_window_rect = {0, 512, 800, 250};
+  Rectangle output_panel_rect = output_window_rect;
+  output_panel_rect.y += 24; // RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT
+  Rectangle output_panel_content_rect = output_panel_rect;
+  output_panel_content_rect.height = 400;
+  Vector2 output_panel_scroll = {1, 0};
+  Rectangle output_panel_view = {0};
+
 
   while (app_menu.MenuWindowActive && !WindowShouldClose())
   {
@@ -76,6 +89,7 @@ int main()
 
     if (app_menu.FilesButtonPressed) files_window.FilesWindowActive = 1;
     if (app_menu.CompilerButtonPressed) compiler_window.CompilerWindowActive = 1;
+    if (app_menu.OutputButtonPressed) output_window = true;
 
     if (IsFileDropped()) 
     {
@@ -198,7 +212,19 @@ int main()
       }
 
       TraceLog(LOG_DEBUG, "Compile command: \"%s\"", compile_command);
-      system(compile_command);
+      
+      // Redirect stderr to stdout for the process
+      TextAppend(compile_command, " 2>&1", &compile_command_pos);
+      FILE *pipe = popen(compile_command, "r");
+      if (pipe == NULL) 
+      {
+        TraceLog(LOG_DEBUG, "FAILED TO EXECUTE COMMAND");
+        TextCopy(command_output, "FAILED TO EXECUTE COMMAND!");
+        continue;
+      }
+
+      fread(command_output, 1, 4096, pipe);
+      pclose(pipe);
     }
 
     BeginDrawing();
@@ -207,6 +233,27 @@ int main()
     GuiAppMenu(&app_menu);
     GuiFilesWindow(&files_window);
     GuiCompilerWindow(&compiler_window);
+
+    if (output_window)
+    {
+      output_window = !GuiWindowBox(output_window_rect, "Output");
+    
+      GuiScrollPanel(output_panel_rect, NULL, output_panel_content_rect, &output_panel_scroll, &output_panel_view);
+
+      BeginScissorMode(output_panel_view.x, output_panel_view.y, output_panel_view.width, output_panel_view.height);
+
+      Rectangle text_rect = {output_panel_rect.x + output_panel_scroll.x, output_panel_rect.y + output_panel_scroll.y, output_panel_content_rect.width, output_panel_content_rect.height};
+
+      int before = GuiGetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL);
+      int before2 = GuiGetStyle(DEFAULT, TEXT_WRAP_MODE);
+      GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, TEXT_ALIGN_TOP);
+      GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, TEXT_WRAP_CHAR);
+      GuiDrawText(command_output, text_rect, TEXT_ALIGN_LEFT, WHITE);
+      GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, before);
+      GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, before2);
+
+      EndScissorMode();
+    }
 
     EndDrawing();
   }

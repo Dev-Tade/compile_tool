@@ -19,7 +19,7 @@ GuiCompilerWindowState InitGuiCompilerWindow(void)
     strcpy(state.OutputPathTextboxText, "");
     state.CompileButtonPressed = false;
 
-    state.layoutRecs[0] = (Rectangle){ state.CompilerWindowAnchor.x + 0, state.CompilerWindowAnchor.y + 0, 280, 536 };
+    state.layoutRecs[0] = (Rectangle){ state.CompilerWindowAnchor.x + 0, state.CompilerWindowAnchor.y + 0, 280, 392 };
     state.layoutRecs[1] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 32, 264, 32 };
     state.layoutRecs[2] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 104, 264, 32 };
     state.layoutRecs[3] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 176, 264, 32 };

@@ -13,10 +13,10 @@ GuiFilesWindowState InitGuiFilesWindow(void)
     state.FilesListActive = 0;
     state.UntrackFileButtonPressed = false;
 
-    state.layoutRecs[0] = (Rectangle){ state.FilesWindowAnchor.x + 0, state.FilesWindowAnchor.y + 0, 280, 536 };
+    state.layoutRecs[0] = (Rectangle){ state.FilesWindowAnchor.x + 0, state.FilesWindowAnchor.y + 0, 280, 392 };
     state.layoutRecs[1] = (Rectangle){ state.FilesWindowAnchor.x + 8, state.FilesWindowAnchor.y + 32, 264, 32 };
-    state.layoutRecs[2] = (Rectangle){ state.FilesWindowAnchor.x + 8, state.FilesWindowAnchor.y + 72, 264, 400 };
-    state.layoutRecs[3] = (Rectangle){ state.FilesWindowAnchor.x + 8, state.FilesWindowAnchor.y + 480, 264, 40 };
+    state.layoutRecs[2] = (Rectangle){ state.FilesWindowAnchor.x + 8, state.FilesWindowAnchor.y + 72, 264, 264 };
+    state.layoutRecs[3] = (Rectangle){ state.FilesWindowAnchor.x + 8, state.FilesWindowAnchor.y + 344, 264, 40 };
 
     // Custom variables initialization
 
