@@ -12,7 +12,14 @@
 
 #define TOOL_NAME "Compile Tool"
 #define TOOL_VERSION "ver. 0.1"
+
+#if defined(_DEBUG) && !defined(RELEASE)
 #define TOOL_BUILD_TYPE "Debug"
+#elif defined(RELEASE) && !defined(_DEBUG)
+#define TOOL_BUILD_TYPE "Release"
+#else
+#error "Unkown build type"
+#endif
 
 FilePathList AllocFilePathList(size_t maxFilePathSize, size_t maxPathCount);
 void FreeFilePathList(FilePathList *list, size_t allocatedPathCount);
@@ -248,7 +255,7 @@ int main()
       int before2 = GuiGetStyle(DEFAULT, TEXT_WRAP_MODE);
       GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, TEXT_ALIGN_TOP);
       GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, TEXT_WRAP_CHAR);
-      GuiDrawText(command_output, text_rect, TEXT_ALIGN_LEFT, WHITE);
+      GuiDrawText(command_output, text_rect, TEXT_ALIGN_LEFT, GetColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
       GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, before);
       GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, before2);
 
