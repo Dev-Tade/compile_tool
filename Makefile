@@ -30,13 +30,14 @@ ifeq ($(BUILD_TYPE),DEBUG)
 endif
 
 SRC = ./src
+SRC_FILES = $(SRC)/main.c $(SRC)/app_menu.c $(SRC)/files_window.c $(SRC)/compiler_window.c $(SRC)/output_window.c
 
 all: check compile_tool
 
 check:
 	test -d $(OUT_DIR) || mkdir $(OUT_DIR)
 
-compile_tool: $(OUT_DIR)/rglp.o $(SRC)/main.c $(SRC)/files_window.c $(SRC)/compiler_window.c $(SRC)/app_menu.c
+compile_tool: $(OUT_DIR)/rglp.o $(SRC_FILES)
 	$(CC) -o $(OUT_DIR)/$@ $^ $(CCFLAGS) $(LINK_FLAGS) $(PREPROC)
 
 $(OUT_DIR)/rglp.o: $(SRC)/rglp.c
