@@ -11,7 +11,7 @@
 #include <raygui.h>
 
 #define TOOL_NAME "Compile Tool"
-#define TOOL_VERSION "ver. 0.1"
+#define TOOL_VERSION "ver. 0.2"
 
 #if defined(_DEBUG) && !defined(RELEASE)
 #define TOOL_BUILD_TYPE "Debug"
@@ -28,6 +28,9 @@ bool IsFileAlreadyTracked(const FilePathList *trackedFiles, const char *filepath
 int TrackFile(FilePathList *trackedFiles, const char *filepath, const char *workingDir);
 int UntrackFile(FilePathList *trackedFiles, const int index);
 
+const int TRACKED_FILES_CAPACITY = 256;
+const int TRACKED_FILE_PATH_SIZE = 256; 
+
 int main()
 {
   const char *WINDOW_TITLE = TOOL_NAME" "TOOL_VERSION" - "TOOL_BUILD_TYPE;
@@ -36,27 +39,36 @@ int main()
   InitWindow(800, 650, WINDOW_TITLE);
   SetTargetFPS(60);
   
-  GuiLoadStyle("styles/style_dark.rgs");
+  GuiLoadStyle("styles/style_genesis.rgs");
   GuiSetStyle(DEFAULT, TEXT_SIZE, 18);
 
-  GuiAppMenuState app_menu = InitGuiAppMenu();
-  app_menu.WindowTitle = WINDOW_TITLE;
-  GuiFilesWindowState files_window = InitGuiFilesWindow();
-  GuiCompilerWindowState compiler_window = InitGuiCompilerWindow();
+  const char *appMenuLayoutFile = "./layouts/app_menu.rgl";
+  const char *filesWindowLayoutFile = "./layouts/files_window.rgl";
+  const char *compilerWindowLayoutFile = "./layouts/compiler_window.rgl";
+
+  AppMenu appMenu = {0};
+  AppMenuInit(&appMenu, appMenuLayoutFile);
+  appMenu.windowTitle = WINDOW_TITLE;
+  
+  FilesWindow filesWindow = {0};
+  FilesWindowInit(&filesWindow, filesWindowLayoutFile);
+
+  CompilerWindow compilerWindow = {0};
+  CompilerWindowInit(&compilerWindow, compilerWindowLayoutFile);
+
+  bool debugDrags = false;
 
   bool output_window = true;
 
-  Rectangle drag_handle = app_menu.layoutRecs[0];
-  drag_handle.height = 24; // RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT
-  bool dragging_window = false;
-  Vector2 window_pos = Vector2Zero();
-  Vector2 pan_offset = Vector2Zero();
+  bool draggingWindow = false;
+  int draggingID = -1;
+  Vector2 dragStartPos = Vector2Zero();
+  Vector2 dragStartMouse = Vector2Zero();
+  // Used for system window only
+  Vector2 dragAccumPos = Vector2Zero();
 
-  files_window.files_text = RL_CALLOC(4096, sizeof(char));
-  files_window.files_text_pos = 0;
+  filesWindow.filesText = RL_CALLOC(4096, sizeof(char));
 
-  const int TRACKED_FILES_CAPACITY = 256;
-  const int TRACKED_FILE_PATH_SIZE = 256; 
   FilePathList trackedFiles = AllocFilePathList(TRACKED_FILE_PATH_SIZE, TRACKED_FILES_CAPACITY);
   int newlyTrackedFiles = 0;
 
@@ -73,30 +85,108 @@ int main()
   Vector2 output_panel_scroll = {1, 0};
   Rectangle output_panel_view = {0};
 
-
-  while (app_menu.MenuWindowActive && !WindowShouldClose())
+  while (!appMenu.shouldClose && !WindowShouldClose())
   {
-    Vector2 mouse_pos = GetMousePosition();
-    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !dragging_window)
+    Rectangle clientArea = (Rectangle)
     {
-      if (CheckCollisionPointRec(mouse_pos, drag_handle))
+      .x = appMenu.dragHandle.x,
+      .y = appMenu.dragHandle.height,
+      .width = appMenu.dragHandle.width,
+      .height = GetScreenHeight()
+    };
+
+    // Enable debug overlays
+    if (IsKeyPressed(KEY_F3))
+    {
+      debugDrags = !debugDrags;
+    }
+
+    // Layout reloading
+    if (IsKeyPressed(KEY_F5))
+    {
+      UnloadLayout(&appMenu.layout);
+      appMenu.layout = LoadLayoutFile(appMenuLayoutFile);
+      UnloadLayout(&filesWindow.layout);
+      filesWindow.layout = LoadLayoutFile(filesWindowLayoutFile);
+      UnloadLayout(&compilerWindow.layout);
+      compilerWindow.layout = LoadLayoutFile(compilerWindowLayoutFile);
+    }
+
+    Vector2 mousePos = GetMousePosition();
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !draggingWindow)
+    {
+      if (CheckCollisionPointRec(mousePos, appMenu.dragHandle))
       {
-        window_pos = GetWindowPosition();
-        dragging_window = true;
-        pan_offset = mouse_pos;
+        draggingWindow = true;
+        draggingID = 0;
+
+        dragAccumPos = dragStartPos = GetWindowPosition();
+        dragStartMouse = mousePos;
+      } 
+      else if (CheckCollisionPointRec(mousePos, filesWindow.dragHandle))
+      {
+        draggingWindow = true;
+        draggingID = 1;
+
+        dragStartPos = filesWindow.anchor->pos;
+        dragStartMouse = mousePos;
       }
+      else if (CheckCollisionPointRec(mousePos, compilerWindow.dragHandle))
+      {
+        draggingWindow = true;
+        draggingID = 2;
+
+        dragStartPos = compilerWindow.anchor->pos;
+        dragStartMouse = mousePos;
+      }
+      
     }
 
-    if (dragging_window)
+    if (draggingWindow)
     { 
-      window_pos = Vector2Add(window_pos, Vector2Subtract(mouse_pos, pan_offset));
-      SetWindowPosition((int)window_pos.x, (int)window_pos.y);
-      if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) dragging_window = false;
-    }
+      Vector2 mouseDelta = Vector2Subtract(mousePos, dragStartMouse);
+      Vector2 dragAbs = Vector2Add(dragStartPos, mouseDelta);
 
-    if (app_menu.FilesButtonPressed) files_window.FilesWindowActive = 1;
-    if (app_menu.CompilerButtonPressed) compiler_window.CompilerWindowActive = 1;
-    if (app_menu.OutputButtonPressed) output_window = true;
+      dragAccumPos = Vector2Add(dragAccumPos, mouseDelta);
+
+      switch (draggingID)
+      {
+        default: break; // Skip unhandled IDs
+        case 0: // System window
+        {
+          SetWindowPosition((int)dragAccumPos.x, (int)dragAccumPos.y);
+        } break;
+
+        case 1: // Files window
+        {
+          float windowWidth = filesWindow.window->rect.width;
+          float windowHeight = filesWindow.window->rect.height;
+
+          dragAbs.x = Clamp(dragAbs.x, clientArea.x, clientArea.width - windowWidth);
+          dragAbs.y = Clamp(dragAbs.y, clientArea.y, clientArea.height - windowHeight);
+          
+          filesWindow.anchor->pos = dragAbs;
+        } break;
+
+        case 2: // Compiler window
+        {
+          float windowWidth = compilerWindow.window->rect.width;
+          float windowHeight = compilerWindow.window->rect.height;
+
+          dragAbs.x = Clamp(dragAbs.x, clientArea.x, clientArea.width - windowWidth);
+          dragAbs.y = Clamp(dragAbs.y, clientArea.y, clientArea.height - windowHeight);
+          
+          compilerWindow.anchor->pos = dragAbs;
+        } break;
+      }
+      
+      // Reset dragging state on button release
+      if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) 
+      {
+        draggingWindow = false;
+        draggingID = -1;
+      }  
+    }
 
     if (IsFileDropped()) 
     {
@@ -127,15 +217,15 @@ int main()
           newlyTrackedFiles += TrackFile(&trackedFiles, file, workingDir);
         }
       }
-
+      
       UnloadDroppedFiles(droppedFiles);
     }
 
-    if (files_window.UntrackFileButtonPressed)
+    if (filesWindow.untrackFile)
     {
-      int index = files_window.FilesListActive;
+      int index = filesWindow.selectedFileIndex;
       newlyTrackedFiles -= UntrackFile(&trackedFiles, index);
-      files_window.FilesListActive = index;
+      filesWindow.selectedFileIndex = index;
     }
 
     if (newlyTrackedFiles != 0)
@@ -145,12 +235,12 @@ int main()
       else if (newlyTrackedFiles > 0) TraceLog(LOG_DEBUG, "%d new files tracked", newlyTrackedFiles);
 
       char *joinedFiles = TextJoin(trackedFiles.paths, trackedFiles.count, ";");
-      TextCopy(files_window.files_text, joinedFiles);
+      TextCopy(filesWindow.filesText, joinedFiles);
       
       newlyTrackedFiles = 0;
     }
 
-    if (compiler_window.CompileButtonPressed)
+    if (compilerWindow.compile)
     {
       TraceLog(LOG_INFO, "Compile!");
       compile_command_pos = 0;
@@ -159,10 +249,10 @@ int main()
       TextAppend(compile_command, "gcc ", &compile_command_pos);
       
       // -o if output path length != 0
-      if (TextLength(compiler_window.OutputPathTextboxText) > 0)
+      if (TextLength(compilerWindow.outputText) > 0)
       { 
         TextAppend(compile_command, "-o ", &compile_command_pos);
-        TextAppend(compile_command, compiler_window.OutputPathTextboxText, &compile_command_pos);
+        TextAppend(compile_command, compilerWindow.outputText, &compile_command_pos);
         TextAppend(compile_command, " ", &compile_command_pos);
       }
 
@@ -174,13 +264,13 @@ int main()
       }
 
       // Additional Include directories if any
-      if (TextLength(compiler_window.AdditionalIncludesTextboxText) > 0)
+      if (TextLength(compilerWindow.includeText) > 0)
       {
         // Append first -I
         TextAppend(compile_command, "-I", &compile_command_pos);
         
         // replace ; separator with -I and append all paths
-        char *replaced = TextReplace(compiler_window.AdditionalIncludesTextboxText, ";", " -I");
+        char *replaced = TextReplace(compilerWindow.includeText, ";", " -I");
         TextAppend(compile_command, replaced, &compile_command_pos);
         RL_FREE(replaced);
 
@@ -189,13 +279,13 @@ int main()
       }
 
       // Additional Library directories if any
-      if (TextLength(compiler_window.AdditionalLibrariesTextboxText) > 0)
+      if (TextLength(compilerWindow.libraryText) > 0)
       {
         // Append first -L
         TextAppend(compile_command, "-L", &compile_command_pos);
         
         // replace ; separator with -L and append all paths
-        char *replaced = TextReplace(compiler_window.AdditionalLibrariesTextboxText, ";", " -L");
+        char *replaced = TextReplace(compilerWindow.libraryText, ";", " -L");
         TextAppend(compile_command, replaced, &compile_command_pos);
         RL_FREE(replaced);
 
@@ -204,13 +294,13 @@ int main()
       }
 
       // Link Libraries if any
-      if (TextLength(compiler_window.LinkLibrariesTextboxText) > 0)
+      if (TextLength(compilerWindow.linkText) > 0)
       {
         // Append first -l
         TextAppend(compile_command, "-l", &compile_command_pos);
         
         // replace ; separator with -l and append all library names
-        char *replaced = TextReplace(compiler_window.LinkLibrariesTextboxText, ";", " -l");
+        char *replaced = TextReplace(compilerWindow.linkText, ";", " -l");
         TextAppend(compile_command, replaced, &compile_command_pos);
         RL_FREE(replaced);
 
@@ -233,13 +323,13 @@ int main()
       fread(command_output, 1, 4096, pipe);
       pclose(pipe);
     }
-
+   
     BeginDrawing();
-    ClearBackground(BLACK);
+    ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
 
-    GuiAppMenu(&app_menu);
-    GuiFilesWindow(&files_window);
-    GuiCompilerWindow(&compiler_window);
+    GuiAppMenu(&appMenu);
+    GuiFilesWindow(&filesWindow);
+    GuiCompilerWindow(&compilerWindow);
 
     if (output_window)
     {
@@ -262,10 +352,30 @@ int main()
       EndScissorMode();
     }
 
+    // UI drags debug
+    if (debugDrags)
+    {
+      // System Window
+      DrawRectangleRec(appMenu.dragHandle, RED);
+      
+      // Files Window
+      DrawRectangleRec(filesWindow.dragHandle, GREEN);
+      DrawCircleV(filesWindow.anchor->pos, 5.0f, DARKGREEN);
+      
+      // Compiler Window
+      DrawRectangleRec(compilerWindow.dragHandle, BLUE);
+      DrawCircleV(compilerWindow.anchor->pos, 5.0f, DARKBLUE);
+      
+      // Client area
+      DrawRectangleRec(clientArea, GetColor(0x80600020));
+    }
+
     EndDrawing();
   }
 
   FreeFilePathList(&trackedFiles, TRACKED_FILES_CAPACITY);
+  UnloadLayout(&filesWindow.layout);
+  UnloadLayout(&appMenu.layout);
 
   CloseWindow();
   return 0;
@@ -330,25 +440,34 @@ int TrackFile(FilePathList *trackedFiles, const char *filepath, const char *work
   // Files are gathered from LoadDroppedFiles / LoadDirectoryFiles
   // The content of those strings is managed by Raylib so have to copy them
   TextCopy(trackedFiles->paths[trackedFiles->count++], fileToTrack);
-  
+
   return 1;
 }
 
 int UntrackFile(FilePathList *trackedFiles, const int index)
 {
   if (trackedFiles == NULL) return 0;
-  if (index >= trackedFiles->count) return 0;
+  if (index < 0 || index >= trackedFiles->count) return 0;
 
   const char *fileToUntrack = trackedFiles->paths[index];
   if (fileToUntrack == NULL || TextLength(fileToUntrack) <= 0) return 0;
 
   TraceLog(LOG_DEBUG, "Untracked file %s", fileToUntrack);
 
-  for (int i = index; i < trackedFiles->count - index; ++i)
+  // Save ar reference to removed item
+  char *removedElement = trackedFiles->paths[index];
+
+  for (int i = index; i < trackedFiles->count - 1; ++i)
   {
     trackedFiles->paths[i] = trackedFiles->paths[i + 1];
   }
-
+  
   trackedFiles->count -= 1;
+
+  // Move removed element to end of array
+  trackedFiles->paths[trackedFiles->count] = removedElement;
+  // Clean removed element to be reusable
+  trackedFiles->paths[trackedFiles->count][0] = '\0';
+
   return 1;
 }

@@ -1,41 +1,44 @@
 #include <string.h>
 #include "app_menu.h"
 
-// Initialization function
-GuiAppMenuState InitGuiAppMenu(void)
+void AppMenuInit(AppMenu *menu, const char *appMenuLayoutFile)
 {
-    GuiAppMenuState state = { 0 };
-
-    state.MenuAnchor = (Vector2){ 0, 0 };
+    if (menu == NULL) return;
     
-    state.MenuWindowActive = true;
-    state.FilesButtonPressed = false;
-    state.CompilerButtonPressed = false;
-    state.OutputButtonPressed = false;
+    menu->layout = LoadLayoutFile(appMenuLayoutFile);
 
-    state.layoutRecs[0] = (Rectangle){ 0, 0, 800, 72 };
-    state.layoutRecs[1] = (Rectangle){ state.MenuAnchor.x + 8, state.MenuAnchor.y + 32, 152, 32 };
-    state.layoutRecs[2] = (Rectangle){ state.MenuAnchor.x + 168, state.MenuAnchor.y + 32, 152, 32 };
-    state.layoutRecs[3] = (Rectangle){ state.MenuAnchor.x + 328, state.MenuAnchor.y + 32, 152, 32 };
+    // Initialize menu status bar related variables
+    RGLControl *statusBar = GetControlByName(&menu->layout, "AppStatusBar");
+    menu->windowTitle = statusBar->text;
+    menu->dragHandle = GetControlRect(&menu->layout, statusBar);
 
-    // Custom variables initialization
-
-    return state;
+    // Defailt state
+    menu->shouldClose = false;
 }
 
-// Rendering/Logic function
-void GuiAppMenu(GuiAppMenuState *state)
+void GuiAppMenu(AppMenu *menu)
 {
-    const char *MenuWindowText = state->WindowTitle;
-    const char *FilesButtonText = "Files";
-    const char *CompilerButtonText = "Compiler";
-    const char *OutputButtonText = "Output";
-    
-    if (state->MenuWindowActive)
+    int screenWidth = GetScreenWidth();
+
+    // Move right anchor x position to the end of the window
+    RGLAnchor *rightAnchor = GetAnchorById(&menu->layout, 2);
+    rightAnchor->pos.x = screenWidth;
+
+    // Expand status bar to occupy full window width
+    RGLControl *statusBar = GetControlByName(&menu->layout, "AppStatusBar");
+    statusBar->rect.width = screenWidth;
+
+    // Update window drag handle
+    Rectangle statusBarRect = GetControlRect(&menu->layout, statusBar);
+    menu->dragHandle = statusBarRect;
+
+    // Draw status bar
+    GuiStatusBar(statusBarRect, menu->windowTitle);
+
+    // Draw close button
+    RGLControl *closeButton = GetControlByName(&menu->layout, "CloseButton");
+    if (GuiButton(GetControlRect(&menu->layout, closeButton), closeButton->text))
     {
-        state->MenuWindowActive = !GuiWindowBox(state->layoutRecs[0], MenuWindowText);
+        menu->shouldClose = true;
     }
-    state->FilesButtonPressed = GuiButton(state->layoutRecs[1], FilesButtonText); 
-    state->CompilerButtonPressed = GuiButton(state->layoutRecs[2], CompilerButtonText); 
-    state->OutputButtonPressed = GuiButton(state->layoutRecs[3], OutputButtonText); 
 }

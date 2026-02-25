@@ -1,0 +1,3 @@
+[submodule "rglp"]
+	path = rglp
+	url = https://github.com/Dev-Tade/rglp.git

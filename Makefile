@@ -8,10 +8,13 @@ RAY = -I$(RAYLIB_INCLUDE) -I$(RAYGUI_INCLUDE) -L$(RAYLIB_LIBRARY)
 
 BUILD_TYPE ?= RELEASE
 
+RGLP_PATH = ./rglp/src
+
 OUT_DIR = ./out/
+INCLUDE = ./include/
 
 CC = gcc
-CCFLAGS = $(RAY) -lraylib -lopengl32 -lgdi32 -lwinmm
+CCFLAGS = -I$(INCLUDE) -I$(RGLP_PATH) $(RAY) -lraylib -lopengl32 -lgdi32 -lwinmm
 LINK_FLAGS = 
 
 PREPROC = 
@@ -33,8 +36,11 @@ all: check compile_tool
 check:
 	test -d $(OUT_DIR) || mkdir $(OUT_DIR)
 
-compile_tool: $(SRC)/main.c $(SRC)/files_window.c $(SRC)/compiler_window.c $(SRC)/app_menu.c
+compile_tool: $(OUT_DIR)/rglp.o $(SRC)/main.c $(SRC)/files_window.c $(SRC)/compiler_window.c $(SRC)/app_menu.c
 	$(CC) -o $(OUT_DIR)/$@ $^ $(CCFLAGS) $(LINK_FLAGS) $(PREPROC)
-	
+
+$(OUT_DIR)/rglp.o: $(SRC)/rglp.c
+	$(CC) -o $@ -c $^ $(CCFLAGS)
+
 run: compile_tool
 	$(OUT_DIR)/compile_tool

@@ -1,52 +1,66 @@
 #include <string.h>
 #include "files_window.h"
 
-// Initialization function
-GuiFilesWindowState InitGuiFilesWindow(void)
+void FilesWindowInit(FilesWindow *files, const char *filesWindowLayoutFile)
 {
-    GuiFilesWindowState state = { 0 };
+    if (files == NULL) return;
 
-    state.FilesWindowAnchor = (Vector2){ 24, 96 };
-    
-    state.FilesWindowActive = true;
-    state.FilesListScrollIndex = 0;
-    state.FilesListActive = 0;
-    state.UntrackFileButtonPressed = false;
+    files->layout = LoadLayoutFile(filesWindowLayoutFile);
 
-    state.layoutRecs[0] = (Rectangle){ state.FilesWindowAnchor.x + 0, state.FilesWindowAnchor.y + 0, 280, 392 };
-    state.layoutRecs[1] = (Rectangle){ state.FilesWindowAnchor.x + 8, state.FilesWindowAnchor.y + 32, 264, 32 };
-    state.layoutRecs[2] = (Rectangle){ state.FilesWindowAnchor.x + 8, state.FilesWindowAnchor.y + 72, 264, 264 };
-    state.layoutRecs[3] = (Rectangle){ state.FilesWindowAnchor.x + 8, state.FilesWindowAnchor.y + 344, 264, 40 };
+    // Expose window and anchor
+    RGLControl *window = GetControlByName(&files->layout, "FilesWindow");
+    files->anchor = GetAnchorById(&files->layout, window->anchorID);
+    files->window = window;
 
-    // Custom variables initialization
+    // Expose window drag handle (status bar)
+    files->dragHandle = GetControlRect(&files->layout, window);
+    files->dragHandle.height = 24; // raygui window statusbar height
 
-    return state;
+    // Empty list of files
+    files->filesText = "";
+
+    // Default state
+    files->windowActive = true;
+    files->untrackFile = false;
+    files->selectedFileIndex = -1;
 }
 
 // Rendering/Logic function
-void GuiFilesWindow(GuiFilesWindowState *state)
+void GuiFilesWindow(FilesWindow *files)
 {
-    const char *FilesWindowText = "Files";
-    const char *TracekdFilesLabelText = "Tracked Files (Drop into window to add)";
-    const char *FilesListText = state->files_text;
-    const char *UntrackFileButtonText = "Untrack selected file";
+    // Update drag handle
+    RGLControl *window = GetControlByName(&files->layout, "FilesWindow");
     
-    // Hack so it doesn't render any text and you can't select
-    // anything under the list view
-    if (TextLength(FilesListText) == 0) 
+    Rectangle windowRect = GetControlRect(&files->layout, window);
+    files->dragHandle = windowRect;
+    files->dragHandle.height = 24; // raygui window statusbar height
+
+    // Don't render filesText if there isn't any content
+    const char *renderedListText = files->filesText;
+    if (TextLength(files->filesText) <= 0) 
     {
-        FilesListText = NULL;
-        state->FilesListActive = -1;
+        renderedListText = NULL;
+        files->selectedFileIndex = -1;
     }
 
-    if (state->FilesWindowActive)
+    if (files->windowActive)
     {
-        state->FilesWindowActive = !GuiWindowBox(state->layoutRecs[0], FilesWindowText);
-        GuiLabel(state->layoutRecs[1], TracekdFilesLabelText);
-        GuiListView(state->layoutRecs[2], FilesListText, &state->FilesListScrollIndex, &state->FilesListActive);
+        files->windowActive = !GuiWindowBox(windowRect, window->text);
 
-        if (!(state->FilesListActive > -1 && TextLength(FilesWindowText) > 0)) GuiDisable();
-        state->UntrackFileButtonPressed = GuiButton(state->layoutRecs[3], UntrackFileButtonText);
+        RGLControl *label = GetControlByName(&files->layout, "FilesLabel");
+        GuiLabel(GetControlRect(&files->layout, label), label->text);
+
+        RGLControl *filesList = GetControlByName(&files->layout, "TrackedFilesList");
+        GuiListView(GetControlRect(&files->layout, filesList), files->filesText, &files->listScrollIndex, &files->selectedFileIndex);
+
+        // Disable untrack button if there isn't a file selected or if there isn't files tracked 
+        if (!(files->selectedFileIndex >= 0 && TextLength(files->filesText) > 0))
+            GuiDisable();
+
+        RGLControl *untrackButton = GetControlByName(&files->layout, "UntrackFileButton");
+        files->untrackFile = GuiButton(GetControlRect(&files->layout, untrackButton), untrackButton->text);
+
+        // Enable further UI elements
         GuiEnable(); 
     }
 }

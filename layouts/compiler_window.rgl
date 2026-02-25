@@ -8,15 +8,15 @@
 # Control info:   c <id> <type> <name> <rectangle> <anchor_id> <text>
 #
 r 0 40 -1 -1
-a 001 CompilerWindowAnchor 324 96 1
-c 000 0 CompilerWindow 0 0 284 392 1 Compiler
-c 001 4 IncludePathLabel 8 32 264 32 1 Additional include path(s) (; separated)
-c 002 4 LibraryPathLabel 8 104 264 32 1 Additional library path(s) (; separated)
-c 003 4 LinkLibrariesLabel 8 176 264 32 1 Link libraries (; separated)
-c 004 4 OutputPathLabel 8 248 264 32 1 Output name/path
-c 005 12 AdditionalIncludesTextbox 8 56 264 40 1 
-c 006 12 AdditionalLibrariesTextbox 8 128 264 40 1 
-c 007 12 LinkLibrariesTextbox 8 200 264 40 1 
-c 008 12 OutputPathTextbox 8 272 264 40 1 
-c 009 5 CompileButton 8 336 264 40 1 Compile
-c 010 2 ActionsLine 8 320 264 16 1 
+a 001 CompilerWindowAnchor 336 40 1
+c 000 0 CompilerWindow 0 0 264 392 1 Compiler
+c 001 4 IncludeLabel 8 32 248 24 1 Additional include path(s) (; separated)
+c 002 4 LibraryLabel 8 104 248 24 1 Additional library path(s) (; separated)
+c 003 4 LinkLabel 8 176 248 24 1 Link libraries (; separated)
+c 004 4 OutputLabel 8 248 248 24 1 Output name/path
+c 005 12 AdditionalIncludesText 8 56 248 40 1 
+c 006 12 AdditionalLibrariesText 8 128 248 40 1 
+c 007 12 LinkLibrariesText 8 200 248 40 1 
+c 008 12 OutputPathText 8 272 248 40 1 
+c 009 5 CompileButton 8 344 248 40 1 Compile
+c 010 2 SeparatorLine 8 320 248 16 1 

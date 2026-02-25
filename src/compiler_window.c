@@ -1,63 +1,94 @@
 #include <string.h>
 #include "compiler_window.h"
 
-// Initialization function
-GuiCompilerWindowState InitGuiCompilerWindow(void)
+#define BUFFER_SIZE 256
+
+void CompilerWindowInit(CompilerWindow *compiler, const char *compilerWindowLayoutFile)
 {
-    GuiCompilerWindowState state = { 0 };
+    if (compiler == NULL) return;
 
-    state.CompilerWindowAnchor = (Vector2){ 324, 96 };
-    
-    state.CompilerWindowActive = true;
-    state.AdditionalIncludesTextboxEditMode = false;
-    strcpy(state.AdditionalIncludesTextboxText, "");
-    state.AdditionalLibrariesTextboxEditMode = false;
-    strcpy(state.AdditionalLibrariesTextboxText, "");
-    state.LinkLibrariesTextboxEditMode = false;
-    strcpy(state.LinkLibrariesTextboxText, "");
-    state.OutputPathTextboxEditMode = false;
-    strcpy(state.OutputPathTextboxText, "");
-    state.CompileButtonPressed = false;
+    compiler->layout = LoadLayoutFile(compilerWindowLayoutFile);
 
-    state.layoutRecs[0] = (Rectangle){ state.CompilerWindowAnchor.x + 0, state.CompilerWindowAnchor.y + 0, 280, 392 };
-    state.layoutRecs[1] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 32, 264, 32 };
-    state.layoutRecs[2] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 104, 264, 32 };
-    state.layoutRecs[3] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 176, 264, 32 };
-    state.layoutRecs[4] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 248, 264, 32 };
-    state.layoutRecs[5] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 56, 264, 40 };
-    state.layoutRecs[6] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 128, 264, 40 };
-    state.layoutRecs[7] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 200, 264, 40 };
-    state.layoutRecs[8] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 272, 264, 40 };
-    state.layoutRecs[9] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 336, 264, 40 };
-    state.layoutRecs[10] = (Rectangle){ state.CompilerWindowAnchor.x + 8, state.CompilerWindowAnchor.y + 320, 264, 16 };
+    // Expose window and anchor
+    RGLControl *window = GetControlByName(&compiler->layout, "CompilerWindow");
+    compiler->anchor = GetAnchorById(&compiler->layout, window->anchorID);
+    compiler->window = window;
 
-    // Custom variables initialization
+    // Expose window drag handle (status bar)
+    compiler->dragHandle = GetControlRect(&compiler->layout, window);
+    compiler->dragHandle.height = 24; // raygui window statusbar height 
 
-    return state;
+    // Default state
+    compiler->windowActive = true;
+    compiler->compile = false;
+
+    compiler->includeTextEdit = false;
+    compiler->libraryTextEdit = false;
+    compiler->linkTextEdit = false;
+    compiler->outputTextEdit = false;
+
+    compiler->includeText = RL_CALLOC(BUFFER_SIZE, sizeof(char));
+    compiler->libraryText = RL_CALLOC(BUFFER_SIZE, sizeof(char));
+    compiler->linkText = RL_CALLOC(BUFFER_SIZE, sizeof(char));
+    compiler->outputText = RL_CALLOC(BUFFER_SIZE, sizeof(char));
+
 }
 
-// Rendering/Logic function
-void GuiCompilerWindow(GuiCompilerWindowState *state)
+void GuiCompilerWindow(CompilerWindow *compiler)
 {
-    const char *CompilerWindowText = "Compiler";
-    const char *IncludePathLabelText = "Additional include path(s) (; separated)";
-    const char *LibraryPathLabelText = "Additional library path(s) (; separated)";
-    const char *LinkLibrariesLabelText = "Link libraries (; separated)";
-    const char *OutputPathLabelText = "Output name/path";
-    const char *CompileButtonText = "Compile";
-    
-    if (state->CompilerWindowActive)
+    // Update drag handle
+    RGLControl *window = GetControlByName(&compiler->layout, "CompilerWindow");
+
+    Rectangle windowRect = GetControlRect(&compiler->layout, window);
+    compiler->dragHandle = windowRect;
+    compiler->dragHandle.height = 24; // raygui window status bar
+
+    if (compiler->windowActive)
     {
-        state->CompilerWindowActive = !GuiWindowBox(state->layoutRecs[0], CompilerWindowText);
-        GuiLabel(state->layoutRecs[1], IncludePathLabelText);
-        GuiLabel(state->layoutRecs[2], LibraryPathLabelText);
-        GuiLabel(state->layoutRecs[3], LinkLibrariesLabelText);
-        GuiLabel(state->layoutRecs[4], OutputPathLabelText);
-        if (GuiTextBox(state->layoutRecs[5], state->AdditionalIncludesTextboxText, 128, state->AdditionalIncludesTextboxEditMode)) state->AdditionalIncludesTextboxEditMode = !state->AdditionalIncludesTextboxEditMode;
-        if (GuiTextBox(state->layoutRecs[6], state->AdditionalLibrariesTextboxText, 128, state->AdditionalLibrariesTextboxEditMode)) state->AdditionalLibrariesTextboxEditMode = !state->AdditionalLibrariesTextboxEditMode;
-        if (GuiTextBox(state->layoutRecs[7], state->LinkLibrariesTextboxText, 128, state->LinkLibrariesTextboxEditMode)) state->LinkLibrariesTextboxEditMode = !state->LinkLibrariesTextboxEditMode;
-        if (GuiTextBox(state->layoutRecs[8], state->OutputPathTextboxText, 128, state->OutputPathTextboxEditMode)) state->OutputPathTextboxEditMode = !state->OutputPathTextboxEditMode;
-        state->CompileButtonPressed = GuiButton(state->layoutRecs[9], CompileButtonText); 
-        GuiLine(state->layoutRecs[10], NULL);
+        compiler->windowActive = !GuiWindowBox(windowRect, window->text);
+
+        // Information/decorative controls
+        // Render labels first
+        RGLControl *includeLabel = GetControlByName(&compiler->layout, "IncludeLabel");
+        RGLControl *libraryLabel = GetControlByName(&compiler->layout, "LibraryLabel");
+        RGLControl *linkLabel = GetControlByName(&compiler->layout, "LinkLabel");
+        RGLControl *outputLabel = GetControlByName(&compiler->layout, "OutputLabel");
+
+        GuiLabel(GetControlRect(&compiler->layout, includeLabel), includeLabel->text);
+        GuiLabel(GetControlRect(&compiler->layout, libraryLabel), libraryLabel->text);
+        GuiLabel(GetControlRect(&compiler->layout, linkLabel), linkLabel->text);
+        GuiLabel(GetControlRect(&compiler->layout, outputLabel), outputLabel->text);
+
+        RGLControl *separatorLine = GetControlByName(&compiler->layout, "SeparatorLine");
+        GuiLine(GetControlRect(&compiler->layout, separatorLine), separatorLine->text);
+        
+        // Interactive controls
+        RGLControl *includeTextbox = GetControlByName(&compiler->layout, "AdditionalIncludesText");
+        RGLControl *libraryTextbox = GetControlByName(&compiler->layout, "AdditionalLibrariesText");
+        RGLControl *linkTextbox = GetControlByName(&compiler->layout, "LinkLibrariesText");
+        RGLControl *outputTextbox = GetControlByName(&compiler->layout, "OutputPathText");
+
+        if (GuiTextBox(GetControlRect(&compiler->layout, includeTextbox), compiler->includeText, BUFFER_SIZE, compiler->includeTextEdit))
+        {
+            compiler->includeTextEdit = !compiler->includeTextEdit;
+        }
+
+        if (GuiTextBox(GetControlRect(&compiler->layout, libraryTextbox), compiler->libraryText, BUFFER_SIZE, compiler->libraryTextEdit))
+        {
+            compiler->libraryTextEdit = !compiler->libraryTextEdit;
+        }
+
+        if (GuiTextBox(GetControlRect(&compiler->layout, linkTextbox), compiler->linkText, BUFFER_SIZE, compiler->linkTextEdit))
+        {
+            compiler->linkTextEdit = !compiler->linkTextEdit;
+        }
+
+        if (GuiTextBox(GetControlRect(&compiler->layout, outputTextbox), compiler->outputText, BUFFER_SIZE, compiler->outputTextEdit))
+        {
+            compiler->outputTextEdit = !compiler->outputTextEdit;
+        }
+
+        RGLControl *compileButton = GetControlByName(&compiler->layout, "CompileButton");
+        compiler->compile = GuiButton(GetControlRect(&compiler->layout, compileButton), compileButton->text);
     }
 }

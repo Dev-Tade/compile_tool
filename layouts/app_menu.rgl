@@ -1,15 +1,14 @@
 #
 # rgl layout text file (v4.0) - raygui layout file generated using rGuiLayout
 #
-# Number of controls:     4
+# Number of controls:     2
 #
 # Ref. window:    r <x> <y> <width> <height>
 # Anchor info:    a <id> <name> <posx> <posy> <enabled>
 # Control info:   c <id> <type> <name> <rectangle> <anchor_id> <text>
 #
-r 0 40 800 650
-a 001 MenuAnchor 0 0 1
-c 000 0 MenuWindow 0 0 800 72 1 Compiler Tool
-c 001 5 FilesButton 8 32 152 32 1 Files
-c 002 5 CompilerButton 168 32 152 32 1 Compiler
-c 003 5 OutputButton 328 32 152 32 1 Output
+r 0 40 -1 -1
+a 001 AppMenuLeftAnchor 0 0 1
+a 002 AppMenuRightAnchor 768 0 1
+c 000 19 AppStatusBar 0 0 768 24 1 This Title wont change since is overwritten in code
+c 001 5 CloseButton -24 0 24 24 2 #113#
