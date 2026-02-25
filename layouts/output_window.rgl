@@ -1,0 +1,13 @@
+#
+# rgl layout text file (v4.0) - raygui layout file generated using rGuiLayout
+#
+# Number of controls:     2
+#
+# Ref. window:    r <x> <y> <width> <height>
+# Anchor info:    a <id> <name> <posx> <posy> <enabled>
+# Control info:   c <id> <type> <name> <rectangle> <anchor_id> <text>
+#
+r 0 40 -1 -1
+a 001 OutputWindowAnchor 0 0 1
+c 000 0 OutputWindow 0 0 600 160 1 Output Window
+c 001 20 OutputTextScroll 0 24 600 136 1 
