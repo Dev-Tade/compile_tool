@@ -3,6 +3,7 @@
 #include "app_menu.h"
 #include "files_window.h"
 #include "compiler_window.h"
+#include "output_window.h"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -45,6 +46,7 @@ int main()
   const char *appMenuLayoutFile = "./layouts/app_menu.rgl";
   const char *filesWindowLayoutFile = "./layouts/files_window.rgl";
   const char *compilerWindowLayoutFile = "./layouts/compiler_window.rgl";
+  const char *outputWindowLayoutFile = "./layouts/output_window.rgl";
 
   AppMenu appMenu = {0};
   AppMenuInit(&appMenu, appMenuLayoutFile);
@@ -56,9 +58,10 @@ int main()
   CompilerWindow compilerWindow = {0};
   CompilerWindowInit(&compilerWindow, compilerWindowLayoutFile);
 
-  bool debugDrags = false;
+  OutputWindow outputWindow = {0};
+  OutputWindowInit(&outputWindow, outputWindowLayoutFile);
 
-  bool output_window = true;
+  bool debugDrags = false;
 
   bool draggingWindow = false;
   int draggingID = -1;
@@ -77,13 +80,7 @@ int main()
 
   char command_output[4096] = {0};
 
-  Rectangle output_window_rect = {0, 512, 800, 250};
-  Rectangle output_panel_rect = output_window_rect;
-  output_panel_rect.y += 24; // RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT
-  Rectangle output_panel_content_rect = output_panel_rect;
-  output_panel_content_rect.height = 400;
-  Vector2 output_panel_scroll = {1, 0};
-  Rectangle output_panel_view = {0};
+  outputWindow.outputText = command_output;
 
   while (!appMenu.shouldClose && !WindowShouldClose())
   {
@@ -139,6 +136,14 @@ int main()
         dragStartPos = compilerWindow.anchor->pos;
         dragStartMouse = mousePos;
       }
+      else if (CheckCollisionPointRec(mousePos, outputWindow.dragHandle))
+      {
+        draggingWindow = true;
+        draggingID = 3;
+
+        dragStartPos = (Vector2){0, outputWindow.window->rect.height};
+        dragStartMouse = mousePos;
+      }
       
     }
 
@@ -177,6 +182,13 @@ int main()
           dragAbs.y = Clamp(dragAbs.y, clientArea.y, clientArea.height - windowHeight);
           
           compilerWindow.anchor->pos = dragAbs;
+        } break;
+        
+        case 3: // Output window
+        {
+          Vector2 dragAbs = Vector2Add(dragStartPos, Vector2Negate(mouseDelta));
+
+          outputWindow.window->rect.height = Clamp(dragAbs.y, clientArea.y, clientArea.height - clientArea.y);
         } break;
       }
       
@@ -323,48 +335,63 @@ int main()
       fread(command_output, 1, 4096, pipe);
       pclose(pipe);
     }
-   
+
     BeginDrawing();
     ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
 
     GuiAppMenu(&appMenu);
     GuiFilesWindow(&filesWindow);
-    GuiCompilerWindow(&compilerWindow);
-
-    if (output_window)
-    {
-      output_window = !GuiWindowBox(output_window_rect, "Output");
-    
-      GuiScrollPanel(output_panel_rect, NULL, output_panel_content_rect, &output_panel_scroll, &output_panel_view);
-
-      BeginScissorMode(output_panel_view.x, output_panel_view.y, output_panel_view.width, output_panel_view.height);
-
-      Rectangle text_rect = {output_panel_rect.x + output_panel_scroll.x, output_panel_rect.y + output_panel_scroll.y, output_panel_content_rect.width, output_panel_content_rect.height};
-
-      int before = GuiGetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL);
-      int before2 = GuiGetStyle(DEFAULT, TEXT_WRAP_MODE);
-      GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, TEXT_ALIGN_TOP);
-      GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, TEXT_WRAP_CHAR);
-      GuiDrawText(command_output, text_rect, TEXT_ALIGN_LEFT, GetColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
-      GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, before);
-      GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, before2);
-
-      EndScissorMode();
-    }
+    GuiCompilerWindow(&compilerWindow);    
+    GuiOutputWindow(&outputWindow);
 
     // UI drags debug
     if (debugDrags)
     {
+      const Color textColor = GetColor(0x282828FF);
+      const Vector2 anchorSize = {12, 12};
+      const Vector2 textOffset = {16, 3};
+      const char *windowTextFmt = "x: %d y: %d w: %d h: %d";
+      const float textSize = 20;
+      const float textSpacing = 1;
+      const char *windowText = 0;
+
+      Vector2 textPos = {0, 0};
+
       // System Window
       DrawRectangleRec(appMenu.dragHandle, RED);
       
       // Files Window
       DrawRectangleRec(filesWindow.dragHandle, GREEN);
-      DrawCircleV(filesWindow.anchor->pos, 5.0f, DARKGREEN);
+      DrawRectangleV(filesWindow.anchor->pos, anchorSize, DARKGREEN);
+      windowText = TextFormat(windowTextFmt, 
+        (int)filesWindow.anchor->pos.x, (int)filesWindow.anchor->pos.y,
+        (int)filesWindow.window->rect.width, (int)filesWindow.window->rect.height
+      );
+
+      textPos = Vector2Add(filesWindow.anchor->pos, textOffset);
+      DrawTextEx(GetFontDefault(), windowText, textPos, textSize, textSpacing, textColor);
       
       // Compiler Window
       DrawRectangleRec(compilerWindow.dragHandle, BLUE);
-      DrawCircleV(compilerWindow.anchor->pos, 5.0f, DARKBLUE);
+      DrawRectangleV(compilerWindow.anchor->pos, anchorSize, DARKBLUE);
+      windowText = TextFormat(windowTextFmt, 
+        (int)compilerWindow.anchor->pos.x, (int)compilerWindow.anchor->pos.y,
+        (int)compilerWindow.window->rect.width, (int)compilerWindow.window->rect.height
+      );
+
+      textPos = Vector2Add(compilerWindow.anchor->pos, textOffset);
+      DrawTextEx(GetFontDefault(), windowText, textPos, textSize, textSpacing, textColor);
+
+      // Output Window
+      DrawRectangleRec(outputWindow.dragHandle, BROWN);
+      DrawRectangleV(outputWindow.anchor->pos, anchorSize, DARKBROWN);
+      windowText = TextFormat(windowTextFmt, 
+        (int)outputWindow.anchor->pos.x, (int)outputWindow.anchor->pos.y,
+        (int)outputWindow.window->rect.width, (int)outputWindow.window->rect.height
+      );
+
+      textPos = Vector2Add(outputWindow.anchor->pos, textOffset);
+      DrawTextEx(GetFontDefault(), windowText, textPos, textSize, textSpacing, textColor);
       
       // Client area
       DrawRectangleRec(clientArea, GetColor(0x80600020));
@@ -374,6 +401,8 @@ int main()
   }
 
   FreeFilePathList(&trackedFiles, TRACKED_FILES_CAPACITY);
+  UnloadLayout(&outputWindow.layout);
+  UnloadLayout(&compilerWindow.layout);
   UnloadLayout(&filesWindow.layout);
   UnloadLayout(&appMenu.layout);
 
