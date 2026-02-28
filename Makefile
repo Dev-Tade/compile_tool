@@ -14,23 +14,38 @@ OUT_DIR = ./out/
 INCLUDE = ./include/
 
 CC = gcc
-CCFLAGS = -I$(INCLUDE) -I$(RGLP_PATH) $(RAY) -lraylib -lopengl32 -lgdi32 -lwinmm
+CCFLAGS = -I$(INCLUDE) -I$(RGLP_PATH) $(RAY) -lraylib
 LINK_FLAGS = 
 
 PREPROC = 
 
+ifeq ($(OS),Windows_NT)
+	CCFLAGS += -lopengl32 -lgdi32 -lwinmm
+endif
+
 ifeq ($(BUILD_TYPE),RELEASE)
-	LINK_FLAGS += -Wl,--subsystem,windows
+	ifeq ($(OS),Windows_NT)
+		LINK_FLAGS += -Wl,--subsystem,windows
+	endif
 	PREPROC += -DRELEASE
 endif
 
 ifeq ($(BUILD_TYPE),DEBUG)
-	LINK_FLAGS += -Wl,--subsystem,console
+	ifeq ($(OS),Windows_NT)
+		LINK_FLAGS += -Wl,--subsystem,console
+	endif
 	PREPROC += -D_DEBUG
+	CCFLAGS += -g
 endif
 
 SRC = ./src
-SRC_FILES = $(SRC)/main.c $(SRC)/app_menu.c $(SRC)/files_window.c $(SRC)/compiler_window.c $(SRC)/output_window.c
+SRC_FILES = $(SRC)/main.c $(SRC)/app_menu.c $(SRC)/files_window.c $(SRC)/compiler_window.c $(SRC)/output_window.c $(SRC)/platform_common.c
+
+ifeq ($(OS),Windows_NT)
+	SRC_FILES += $(SRC)/platform_win32.c
+else
+	SRC_FILES += $(SRC)/platform_posix.c
+endif
 
 all: check compile_tool
 

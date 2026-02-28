@@ -17,6 +17,10 @@ void OutputWindowInit(OutputWindow *output, const char *outputWindowLayoutFile)
 
   // Default state
   output->windowActive = true;
+  
+  output->outputText = NULL;
+  output->exitCode = 0;
+  output->commandState = 0;
 }
 
 void GuiOutputWindow(OutputWindow *output)
@@ -38,7 +42,29 @@ void GuiOutputWindow(OutputWindow *output)
 
   if (output->windowActive)
   {
-    output->windowActive = !GuiWindowBox(windowRect, window->text);
+    const char *title = window->text;
+    
+    // CMD_PENDING
+    if (output->commandState == 1)
+    {
+      const char *status = "Compilation in progress";
+      title = TextFormat("%s - %s", window->text, status); 
+    } // CMD_DONE
+    else if (output->commandState == 2)
+    {
+      const char *status = output->exitCode == 0 ? 
+        "Compilation Succesful" :
+        "Compilation Failed";
+
+      title = TextFormat("%s - %s (Exit Code: %d)", window->text, status, output->exitCode);
+    } // CMD_FAILED 
+    else if (output->commandState == 3)
+    {
+      const char *status = "Process Spawn Failed";
+      title = TextFormat("%s - %s (Exit Code: %d)", window->text, status, output->exitCode);
+    }
+
+    output->windowActive = !GuiWindowBox(windowRect, title);
 
     // Update scroll panel to be inside window
     RGLControl *scrollPanel = GetControlByName(&output->layout, "OutputTextScroll");

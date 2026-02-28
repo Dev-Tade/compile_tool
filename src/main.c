@@ -5,6 +5,8 @@
 #include "compiler_window.h"
 #include "output_window.h"
 
+#include "platform.h"
+
 #include <raylib.h>
 #include <raymath.h>
 
@@ -12,7 +14,7 @@
 #include <raygui.h>
 
 #define TOOL_NAME "Compile Tool"
-#define TOOL_VERSION "ver. 0.2"
+#define TOOL_VERSION "ver. 0.3"
 
 #if defined(_DEBUG) && !defined(RELEASE)
 #define TOOL_BUILD_TYPE "Debug"
@@ -78,9 +80,9 @@ int main()
   char compile_command[2048] = {0};
   int compile_command_pos = 0;
 
-  char command_output[4096] = {0};
-
-  outputWindow.outputText = command_output;
+  char *commandOutputCopy = NULL;
+  
+  CmdRunner compileCommand = {0};
 
   while (!appMenu.shouldClose && !WindowShouldClose())
   {
@@ -252,7 +254,7 @@ int main()
       newlyTrackedFiles = 0;
     }
 
-    if (compilerWindow.compile)
+    if (compilerWindow.compile && CommandRunnerIs(&compileCommand, CMD_UNITIALIZED))
     {
       TraceLog(LOG_INFO, "Compile!");
       compile_command_pos = 0;
@@ -322,18 +324,35 @@ int main()
 
       TraceLog(LOG_DEBUG, "Compile command: \"%s\"", compile_command);
       
-      // Redirect stderr to stdout for the process
-      TextAppend(compile_command, " 2>&1", &compile_command_pos);
-      FILE *pipe = popen(compile_command, "r");
-      if (pipe == NULL) 
-      {
-        TraceLog(LOG_DEBUG, "FAILED TO EXECUTE COMMAND");
-        TextCopy(command_output, "FAILED TO EXECUTE COMMAND!");
-        continue;
-      }
+      CommandRunnerAsync(&compileCommand, compile_command);
+    }
 
-      fread(command_output, 1, 4096, pipe);
-      pclose(pipe);
+    // Command execution state
+    // Command is still running
+    if (CommandRunnerIs(&compileCommand, CMD_PENDING))
+    {
+      outputWindow.commandState = CMD_PENDING;
+    } // Command finished execution
+    else if (CommandRunnerIs(&compileCommand, CMD_DONE))
+    {
+      // Free previous output message
+      if (commandOutputCopy != NULL) free(commandOutputCopy);
+
+      // Copy output message
+      commandOutputCopy = strdup(compileCommand.output);
+      outputWindow.outputText = commandOutputCopy;
+
+      // Copy exit code
+      outputWindow.exitCode = compileCommand.exitCode;
+      outputWindow.commandState = CMD_DONE;
+
+      // Reset command runner state
+      CommandRunnerReset(&compileCommand);
+    } // Unsuccesfuly (Process Spawn Failed)
+    else if (CommandRunnerIs(&compileCommand, CMD_FAILED))
+    {
+      outputWindow.commandState = CMD_FAILED;
+      CommandRunnerReset(&compileCommand);
     }
 
     BeginDrawing();

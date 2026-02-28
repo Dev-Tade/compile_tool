@@ -24,6 +24,8 @@ typedef struct OutputWindow
   bool windowActive;
 
   char *outputText;
+  int exitCode;
+  int commandState;
 
 } OutputWindow;
 
