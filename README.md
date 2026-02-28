@@ -1,6 +1,9 @@
 # Compile Tool
 Simple and easy to use GUI tool to build C source code built on top of [Raylib](https://github.com/raysan5/raylib) and [Raygui](https://github.com/raysan5/raygui)
 
+> When cloning repo: `git clone --recurse-submodules` <br>
+Project depends on submodule [rglp](https://github.com/Dev-Tade/rglp)
+
 ---
 
 <img src="screenshots/Screenshot0.png" width=260 height=210></img>
