@@ -32,16 +32,14 @@ make RAYLIB_INCLUDE=<path to directory containing raylib header files> RAYLIB_LI
 2. Recursively tracks dropped directories
 3. Trims the path to the local one
 4. Custom window title bar (it does not use system native one)
+5. Non locking UI thread (compiling runs on background thread)
 
 ### Limitations
 * Right now the `only compiler is gcc` because is **hardcoded**
-* You can't see compiler output if an error ocurred
 * May be really slow for a large amount of files
 
 ---
 
 ### Future
-
-Application layout was done using [rGuiLayout](https://github.com/raysan5/rguilayout), but it will be replaced with a manually coded one (or loaded from rGuiLayout file, it would be better for user since it would be able to customize the layout)
 
 [rini](https://github.com/raysan5/rini) will be used for saving project build configurations
