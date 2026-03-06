@@ -10,8 +10,9 @@ BUILD_TYPE ?= RELEASE
 
 RGLP_PATH = ./rglp/src
 
-OUT_DIR = ./out/
-INCLUDE = ./include/
+OUT_DIR = ./out
+INCLUDE = ./include
+UI_INCLUDE = $(INCLUDE)/ui
 
 CC = gcc
 CCFLAGS = -I$(INCLUDE) -I$(RGLP_PATH) $(RAY) -lraylib
@@ -39,7 +40,12 @@ ifeq ($(BUILD_TYPE),DEBUG)
 endif
 
 SRC = ./src
-SRC_FILES = $(SRC)/main.c $(SRC)/app_menu.c $(SRC)/files_window.c $(SRC)/compiler_window.c $(SRC)/output_window.c $(SRC)/platform_common.c $(SRC)/window_sorting.c
+UI_SRC = $(SRC)/ui
+
+SRC_FILES = $(SRC)/main.c $(SRC)/platform_common.c $(SRC)/window_system.c
+UI_SRC_FILES = $(wildcard $(UI_SRC)/*.c)
+
+UI_OUT_FILES = $(patsubst %.c,$(OUT_DIR)/%.o,$(notdir $(UI_SRC_FILES)))
 
 ifeq ($(OS),Windows_NT)
 	SRC_FILES += $(SRC)/platform_win32.c
@@ -52,11 +58,14 @@ all: check compile_tool
 check:
 	test -d $(OUT_DIR) || mkdir $(OUT_DIR)
 
-compile_tool: $(OUT_DIR)/rglp.o $(SRC_FILES)
+compile_tool: $(SRC_FILES) $(OUT_DIR)/rglp.o $(UI_OUT_FILES)
 	$(CC) -o $(OUT_DIR)/$@ $^ $(CCFLAGS) $(LINK_FLAGS) $(PREPROC)
 
 $(OUT_DIR)/rglp.o: $(SRC)/rglp.c
 	$(CC) -o $@ -c $^ $(CCFLAGS)
+
+$(OUT_DIR)/%.o: $(UI_SRC)/%.c
+	$(CC) -o $@ -c $^ $(CCFLAGS) $(PREPROC) -I$(UI_INCLUDE)
 
 run: compile_tool
 	$(OUT_DIR)/compile_tool
