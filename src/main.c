@@ -5,6 +5,8 @@
 #include "compiler_window.h"
 #include "output_window.h"
 
+#include "window_sorting.h"
+
 #include "platform.h"
 
 #include <raylib.h>
@@ -34,6 +36,36 @@ int UntrackFile(FilePathList *trackedFiles, const int index);
 const int TRACKED_FILES_CAPACITY = 256;
 const int TRACKED_FILE_PATH_SIZE = 256; 
 
+// void BringWindowToFront(WindowEntry windows[], size_t windows_count, uint id)
+// {
+//   if (windows_count == 0) return;
+
+//   uint index = windows_count;
+//   // Find window with given ID
+//   for (size_t i=0; i<windows_count; i++)
+//   {
+//     if (windows[i].id == id)
+//     {
+//       index = i; 
+//       break;
+//     }
+//   }
+
+//   if (index == windows_count) return;
+//   if (index == 0) return;
+
+//   WindowEntry copy = windows[index];
+//   WindowEntry temp = windows[index];
+
+//   // Desplazar hacia atrás
+//   for (size_t i = index; i > 0; i--)
+//   {
+//     windows[i] = windows[i - 1];
+//   }
+
+//   windows[0] = temp;
+// }
+
 int main()
 {
   const char *WINDOW_TITLE = TOOL_NAME" "TOOL_VERSION" - "TOOL_BUILD_TYPE;
@@ -62,6 +94,20 @@ int main()
 
   OutputWindow outputWindow = {0};
   OutputWindowInit(&outputWindow, outputWindowLayoutFile);
+
+  // WindowEntry windows[] = 
+  // {
+  //   {1, &filesWindow, (void (*)(void *instance))GuiFilesWindow},
+  //   {2, &compilerWindow, (void (*)(void *instance))GuiCompilerWindow},
+  //   {3, &outputWindow, (void (*)(void *instance))GuiOutputWindow},
+  // };
+
+  // size_t windows_count = sizeof(windows)/sizeof(WindowEntry);
+
+  WindowEntries windows = WindowEntriesInit(8);
+  WindowEntriesPush(&windows, (WindowEntry){&filesWindow, (WindowDrawFn)GuiFilesWindow});
+  WindowEntriesPush(&windows, (WindowEntry){&compilerWindow, (WindowDrawFn)GuiCompilerWindow});
+  WindowEntriesPush(&windows, (WindowEntry){&outputWindow, (WindowDrawFn)GuiOutputWindow});
 
   bool debugDrags = false;
 
@@ -166,6 +212,8 @@ int main()
 
         case 1: // Files window
         {
+          WindowEntriesUpfront(&windows, &filesWindow);
+
           float windowWidth = filesWindow.window->rect.width;
           float windowHeight = filesWindow.window->rect.height;
 
@@ -177,6 +225,7 @@ int main()
 
         case 2: // Compiler window
         {
+          WindowEntriesUpfront(&windows, &compilerWindow);
           float windowWidth = compilerWindow.window->rect.width;
           float windowHeight = compilerWindow.window->rect.height;
 
@@ -188,6 +237,7 @@ int main()
         
         case 3: // Output window
         {
+          WindowEntriesUpfront(&windows, &outputWindow);
           Vector2 dragAbs = Vector2Add(dragStartPos, Vector2Negate(mouseDelta));
 
           outputWindow.window->rect.height = Clamp(dragAbs.y, clientArea.y, clientArea.height - clientArea.y);
@@ -359,10 +409,9 @@ int main()
     ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
 
     GuiAppMenu(&appMenu);
-    GuiFilesWindow(&filesWindow);
-    GuiCompilerWindow(&compilerWindow);    
-    GuiOutputWindow(&outputWindow);
 
+    WindowEntriesDraw(&windows);
+    
     // UI drags debug
     if (debugDrags)
     {
@@ -419,6 +468,7 @@ int main()
     EndDrawing();
   }
 
+  WindowEntriesFree(&windows);
   FreeFilePathList(&trackedFiles, TRACKED_FILES_CAPACITY);
   UnloadLayout(&outputWindow.layout);
   UnloadLayout(&compilerWindow.layout);
