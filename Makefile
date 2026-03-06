@@ -39,7 +39,7 @@ ifeq ($(BUILD_TYPE),DEBUG)
 endif
 
 SRC = ./src
-SRC_FILES = $(SRC)/main.c $(SRC)/app_menu.c $(SRC)/files_window.c $(SRC)/compiler_window.c $(SRC)/output_window.c $(SRC)/platform_common.c
+SRC_FILES = $(SRC)/main.c $(SRC)/app_menu.c $(SRC)/files_window.c $(SRC)/compiler_window.c $(SRC)/output_window.c $(SRC)/platform_common.c $(SRC)/window_sorting.c
 
 ifeq ($(OS),Windows_NT)
 	SRC_FILES += $(SRC)/platform_win32.c
