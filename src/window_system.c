@@ -104,6 +104,7 @@ void WindowSystemMove(WindowSystem *state)
 
   // Compute move input variables
   state->moveInput.clientArea = state->dragInput.clientArea;
+  state->moveInput.dragStart = state->dragOutput.dragStartAbsolute;
 
   state->moveInput.mouseDelta = Vector2Subtract(
     state->currentMousePos, state->startMousePos);

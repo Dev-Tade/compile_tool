@@ -4,6 +4,8 @@
 #include "raygui.h"
 #include "rglp.h"
 
+#include "window_system.h"
+
 typedef struct CompilerWindow
 {
     RGLayout layout;
@@ -31,5 +33,8 @@ typedef struct CompilerWindow
 
 void CompilerWindowInit(CompilerWindow *compiler, const char *compilerWindowLayoutFile);
 void GuiCompilerWindow(CompilerWindow *state);
+
+bool CompilerWindowDrag(CompilerWindow *compiler, const WindowDragInput *input, WindowDragOutput *output);
+void CompilerWindowMove(CompilerWindow *compiler, const WindowMoveInput input);
 
 #endif //!COMPILER_WINDOW_H

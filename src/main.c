@@ -16,7 +16,7 @@
 #include <raygui.h>
 
 #define TOOL_NAME "Compile Tool"
-#define TOOL_VERSION "ver. 0.3"
+#define TOOL_VERSION "ver. 0.4"
 
 #if defined(_DEBUG) && !defined(RELEASE)
 #define TOOL_BUILD_TYPE "Debug"
@@ -74,6 +74,12 @@ int main()
   OutputWindowInit(&outputWindow, outputWindowLayoutFile);
 
   WindowSystem *windows = WindowSystemInit(8);
+
+  WindowSystemRegister(windows,
+    MakeWindowEntry(APP_MENU_WINDOW_ID, &appMenu,
+      (WindowFnDraw)GuiAppMenu,
+      (WindowFnDrag)AppMenuDrag,
+      (WindowFnMove)AppMenuMove));
   
   WindowSystemRegister(windows, 
     MakeWindowEntry(FILES_WINDOW_ID, &filesWindow,  
@@ -82,10 +88,16 @@ int main()
       (WindowFnMove)FilesWindowMove));
   
   WindowSystemRegister(windows, 
-    MakeWindowEntry(COMPILER_WINDOW_ID, &compilerWindow, (WindowFnDraw)GuiCompilerWindow, NULL, NULL));
+    MakeWindowEntry(COMPILER_WINDOW_ID, &compilerWindow, 
+      (WindowFnDraw)GuiCompilerWindow, 
+      (WindowFnDrag)CompilerWindowDrag,
+      (WindowFnMove)CompilerWindowMove));
 
   WindowSystemRegister(windows, 
-    MakeWindowEntry(OUTPUT_WINDOW_ID, &outputWindow, (WindowFnDraw)GuiOutputWindow, NULL, NULL));
+    MakeWindowEntry(OUTPUT_WINDOW_ID, &outputWindow, 
+      (WindowFnDraw)GuiOutputWindow,
+      (WindowFnDrag)OutputWindowDrag,
+      (WindowFnMove)OutputWindowMove));
 
   bool debugDrags = false;
 
@@ -136,110 +148,9 @@ int main()
     }
 
     Vector2 mousePos = GetMousePosition();
-#if 0
-    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !draggingWindow)
-    {
-      if (CheckCollisionPointRec(mousePos, appMenu.dragHandle))
-      {
-        draggingWindow = true;
-        draggingID = 0;
-
-        dragAccumPos = dragStartPos = GetWindowPosition();
-        dragStartMouse = mousePos;
-      } 
-      else if (CheckCollisionPointRec(mousePos, filesWindow.dragHandle))
-      {
-        draggingWindow = true;
-        draggingID = 1;
-
-        dragStartPos = filesWindow.anchor->pos;
-        dragStartMouse = mousePos;
-      }
-      else if (CheckCollisionPointRec(mousePos, compilerWindow.dragHandle))
-      {
-        draggingWindow = true;
-        draggingID = 2;
-
-        dragStartPos = compilerWindow.anchor->pos;
-        dragStartMouse = mousePos;
-      }
-      else if (CheckCollisionPointRec(mousePos, outputWindow.dragHandle))
-      {
-        draggingWindow = true;
-        draggingID = 3;
-
-        dragStartPos = (Vector2){0, outputWindow.window->rect.height};
-        dragStartMouse = mousePos;
-      }
-      
-    }
-#else
-    WindowDragInput input = {0};
-    input.clientArea = clientArea;
-    input.mousePos = mousePos;
+    WindowDragInput input = {mousePos, clientArea};
     WindowSystemDrag(windows, input);
-#endif
-
-#if 0
-    if (draggingWindow)
-    { 
-      Vector2 mouseDelta = Vector2Subtract(mousePos, dragStartMouse);
-      Vector2 dragAbs = Vector2Add(dragStartPos, mouseDelta);
-
-      dragAccumPos = Vector2Add(dragAccumPos, mouseDelta);
-
-      switch (draggingID)
-      {
-        default: break; // Skip unhandled IDs
-        case 0: // System window
-        {
-          SetWindowPosition((int)dragAccumPos.x, (int)dragAccumPos.y);
-        } break;
-
-        case 1: // Files window
-        {
-          WindowSystemMoveToFront(windows, FILES_WINDOW_ID);
-
-          float windowWidth = filesWindow.window->rect.width;
-          float windowHeight = filesWindow.window->rect.height;
-
-          dragAbs.x = Clamp(dragAbs.x, clientArea.x, clientArea.width - windowWidth);
-          dragAbs.y = Clamp(dragAbs.y, clientArea.y, clientArea.height - windowHeight);
-          
-          filesWindow.anchor->pos = dragAbs;
-        } break;
-
-        case 2: // Compiler window
-        {
-          WindowSystemMoveToFront(windows, COMPILER_WINDOW_ID);
-          float windowWidth = compilerWindow.window->rect.width;
-          float windowHeight = compilerWindow.window->rect.height;
-
-          dragAbs.x = Clamp(dragAbs.x, clientArea.x, clientArea.width - windowWidth);
-          dragAbs.y = Clamp(dragAbs.y, clientArea.y, clientArea.height - windowHeight);
-          
-          compilerWindow.anchor->pos = dragAbs;
-        } break;
-        
-        case 3: // Output window
-        {
-          WindowSystemMoveToFront(windows, OUTPUT_WINDOW_ID);
-          Vector2 dragAbs = Vector2Add(dragStartPos, Vector2Negate(mouseDelta));
-
-          outputWindow.window->rect.height = Clamp(dragAbs.y, clientArea.y, clientArea.height - clientArea.y);
-        } break;
-      }
-      
-      // Reset dragging state on button release
-      if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) 
-      {
-        draggingWindow = false;
-        draggingID = -1;
-      }  
-    }
-#else
     WindowSystemMove(windows);
-#endif
 
     if (IsFileDropped()) 
     {

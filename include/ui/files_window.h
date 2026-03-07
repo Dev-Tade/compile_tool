@@ -30,7 +30,7 @@ typedef struct FilesWindow
 void FilesWindowInit(FilesWindow *window, const char *filesWindowLayoutFile);
 void GuiFilesWindow(FilesWindow *state);
 
-bool FilesWindowDrag(FilesWindow *window, const WindowDragInput *input, WindowDragOutput *output);
-void FilesWindowMove(FilesWindow *window, const WindowMoveInput input);
+bool FilesWindowDrag(FilesWindow *files, const WindowDragInput *input, WindowDragOutput *output);
+void FilesWindowMove(FilesWindow *files, const WindowMoveInput input);
 
 #endif //!FILES_WINDOW_H

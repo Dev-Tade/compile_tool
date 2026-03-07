@@ -91,3 +91,26 @@ void GuiCompilerWindow(CompilerWindow *compiler)
     compiler->compile = GuiButton(GetControlRect(&compiler->layout, compileButton), compileButton->text);
   }
 }
+
+bool CompilerWindowDrag(CompilerWindow *compiler, const WindowDragInput *input, WindowDragOutput *output)
+{
+  if (!CheckCollisionPointRec(input->mousePos, compiler->dragHandle)) return false;
+  
+  output->dragStartAbsolute = compiler->anchor->pos;
+  return true;
+}
+
+void CompilerWindowMove(CompilerWindow *compiler, const WindowMoveInput input)
+{
+  float windowWidth = compiler->window->rect.width;
+  float windowHeight = compiler->window->rect.height;
+
+  Vector2 dragAbsolute = input.dragAbsolute;
+
+  dragAbsolute.x = Clamp(dragAbsolute.x, 
+    input.clientArea.x, input.clientArea.width - windowWidth);
+  dragAbsolute.y = Clamp(dragAbsolute.y, 
+    input.clientArea.y, input.clientArea.height - windowHeight);
+    
+  compiler->anchor->pos = dragAbsolute;
+}

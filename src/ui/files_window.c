@@ -64,24 +64,24 @@ void GuiFilesWindow(FilesWindow *files)
   }
 }
 
-bool FilesWindowDrag(FilesWindow *window, const WindowDragInput *input, WindowDragOutput *output)
+bool FilesWindowDrag(FilesWindow *files, const WindowDragInput *input, WindowDragOutput *output)
 {
-  if (!CheckCollisionPointRec(input->mousePos, window->dragHandle)) return false;
+  if (!CheckCollisionPointRec(input->mousePos, files->dragHandle)) return false;
 
-  output->dragStartAbsolute = window->anchor->pos;
+  output->dragStartAbsolute = files->anchor->pos;
   return true;
 }
 
-void FilesWindowMove(FilesWindow *window, const WindowMoveInput input)
+void FilesWindowMove(FilesWindow *files, const WindowMoveInput input)
 {
   
-  float windowWidth = window->window->rect.width;
-  float windowHeight = window->window->rect.height;
+  float windowWidth = files->window->rect.width;
+  float windowHeight = files->window->rect.height;
 
   Vector2 dragAbsolute = input.dragAbsolute;
 
   dragAbsolute.x = Clamp(dragAbsolute.x, input.clientArea.x, input.clientArea.width - windowWidth);
   dragAbsolute.y = Clamp(dragAbsolute.y, input.clientArea.y, input.clientArea.height - windowHeight);
 
-  window->anchor->pos = dragAbsolute;
+  files->anchor->pos = dragAbsolute;
 }

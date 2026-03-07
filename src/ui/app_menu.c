@@ -1,4 +1,3 @@
-#include <string.h>
 #include "app_menu.h"
 
 void AppMenuInit(AppMenu *menu, const char *appMenuLayoutFile)
@@ -41,4 +40,17 @@ void GuiAppMenu(AppMenu *menu)
   {
     menu->shouldClose = true;
   }
+}
+
+bool AppMenuDrag(AppMenu *menu, const WindowDragInput *input, WindowDragOutput *output)
+{
+  if (!CheckCollisionPointRec(input->mousePos, menu->dragHandle)) return false;
+
+  output->dragStartAccumulative = output->dragStartAbsolute = GetWindowPosition();
+  return true;
+}
+
+void AppMenuMove(AppMenu *menu, const WindowMoveInput input)
+{
+  SetWindowPosition((int)input.dragAccumulated.x, (int)input.dragAccumulated.y);
 }

@@ -94,3 +94,19 @@ void GuiOutputWindow(OutputWindow *output)
       EndScissorMode();
   }
 }
+
+bool OutputWindowDrag(OutputWindow *outputW, const WindowDragInput *input, WindowDragOutput *output)
+{
+  if (!CheckCollisionPointRec(input->mousePos, outputW->dragHandle)) return false;
+
+  output->dragStartAbsolute = (Vector2){0, outputW->window->rect.height};
+  return true;
+}
+
+void OutputWindowMove(OutputWindow *outputW, const WindowMoveInput input)
+{
+  Vector2 dragAbsolute = Vector2Add(input.dragStart, Vector2Negate(input.mouseDelta));
+  
+  outputW->window->rect.height = Clamp(dragAbsolute.y, 
+    input.clientArea.y, input.clientArea.height - input.clientArea.y);
+}

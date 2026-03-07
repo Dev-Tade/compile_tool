@@ -24,6 +24,7 @@ typedef struct WindowDragOutput
 typedef struct WindowMoveInput
 {
   Rectangle clientArea;             //
+  Vector2 dragStart;                // = WindowDragOutput.dragStartAbsolute
   Vector2 mouseDelta;               // = mousePos (from WindowFnDrag) - currentMousePos
   Vector2 dragAccumulated;          // = dragAccumulated + mouseDelta
   Vector2 dragAbsolute;             // = dragStartAbsolute + mouseDelta

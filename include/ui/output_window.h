@@ -4,6 +4,8 @@
 #include "raygui.h"
 #include "rglp.h"
 
+#include "window_system.h"
+
 typedef struct OutputWindow
 {
   RGLayout layout;
@@ -31,5 +33,8 @@ typedef struct OutputWindow
 
 void OutputWindowInit(OutputWindow *output, const char *outputWindowLayoutFile);
 void GuiOutputWindow(OutputWindow *state);
+
+bool OutputWindowDrag(OutputWindow *outputW, const WindowDragInput *input, WindowDragOutput *output);
+void OutputWindowMove(OutputWindow *outputW, const WindowMoveInput input);
 
 #endif //!OUTPUT_WINDOW_H
