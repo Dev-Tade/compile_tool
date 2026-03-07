@@ -1,11 +1,11 @@
 #include <stdlib.h>
 
-#include "app_menu.h"
-#include "files_window.h"
-#include "compiler_window.h"
-#include "output_window.h"
+#include "ui/app_menu.h"
+#include "ui/files_window.h"
+#include "ui/compiler_window.h"
+#include "ui/output_window.h"
 
-#include "window_sorting.h"
+#include "window_system.h"
 
 #include "platform.h"
 
@@ -36,35 +36,13 @@ int UntrackFile(FilePathList *trackedFiles, const int index);
 const int TRACKED_FILES_CAPACITY = 256;
 const int TRACKED_FILE_PATH_SIZE = 256; 
 
-// void BringWindowToFront(WindowEntry windows[], size_t windows_count, uint id)
-// {
-//   if (windows_count == 0) return;
-
-//   uint index = windows_count;
-//   // Find window with given ID
-//   for (size_t i=0; i<windows_count; i++)
-//   {
-//     if (windows[i].id == id)
-//     {
-//       index = i; 
-//       break;
-//     }
-//   }
-
-//   if (index == windows_count) return;
-//   if (index == 0) return;
-
-//   WindowEntry copy = windows[index];
-//   WindowEntry temp = windows[index];
-
-//   // Desplazar hacia atrás
-//   for (size_t i = index; i > 0; i--)
-//   {
-//     windows[i] = windows[i - 1];
-//   }
-
-//   windows[0] = temp;
-// }
+enum WINDOW_IDS
+{
+  APP_MENU_WINDOW_ID = 0,
+  FILES_WINDOW_ID,
+  COMPILER_WINDOW_ID,
+  OUTPUT_WINDOW_ID,
+};
 
 int main()
 {
@@ -95,19 +73,19 @@ int main()
   OutputWindow outputWindow = {0};
   OutputWindowInit(&outputWindow, outputWindowLayoutFile);
 
-  // WindowEntry windows[] = 
-  // {
-  //   {1, &filesWindow, (void (*)(void *instance))GuiFilesWindow},
-  //   {2, &compilerWindow, (void (*)(void *instance))GuiCompilerWindow},
-  //   {3, &outputWindow, (void (*)(void *instance))GuiOutputWindow},
-  // };
+  WindowSystem *windows = WindowSystemInit(8);
+  
+  WindowSystemRegister(windows, 
+    MakeWindowEntry(FILES_WINDOW_ID, &filesWindow,  
+      (WindowFnDraw)GuiFilesWindow, 
+      (WindowFnDrag)FilesWindowDrag, 
+      (WindowFnMove)FilesWindowMove));
+  
+  WindowSystemRegister(windows, 
+    MakeWindowEntry(COMPILER_WINDOW_ID, &compilerWindow, (WindowFnDraw)GuiCompilerWindow, NULL, NULL));
 
-  // size_t windows_count = sizeof(windows)/sizeof(WindowEntry);
-
-  WindowEntries windows = WindowEntriesInit(8);
-  WindowEntriesPush(&windows, (WindowEntry){&filesWindow, (WindowDrawFn)GuiFilesWindow});
-  WindowEntriesPush(&windows, (WindowEntry){&compilerWindow, (WindowDrawFn)GuiCompilerWindow});
-  WindowEntriesPush(&windows, (WindowEntry){&outputWindow, (WindowDrawFn)GuiOutputWindow});
+  WindowSystemRegister(windows, 
+    MakeWindowEntry(OUTPUT_WINDOW_ID, &outputWindow, (WindowFnDraw)GuiOutputWindow, NULL, NULL));
 
   bool debugDrags = false;
 
@@ -158,6 +136,7 @@ int main()
     }
 
     Vector2 mousePos = GetMousePosition();
+#if 0
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !draggingWindow)
     {
       if (CheckCollisionPointRec(mousePos, appMenu.dragHandle))
@@ -194,7 +173,14 @@ int main()
       }
       
     }
+#else
+    WindowDragInput input = {0};
+    input.clientArea = clientArea;
+    input.mousePos = mousePos;
+    WindowSystemDrag(windows, input);
+#endif
 
+#if 0
     if (draggingWindow)
     { 
       Vector2 mouseDelta = Vector2Subtract(mousePos, dragStartMouse);
@@ -212,7 +198,7 @@ int main()
 
         case 1: // Files window
         {
-          WindowEntriesUpfront(&windows, &filesWindow);
+          WindowSystemMoveToFront(windows, FILES_WINDOW_ID);
 
           float windowWidth = filesWindow.window->rect.width;
           float windowHeight = filesWindow.window->rect.height;
@@ -225,7 +211,7 @@ int main()
 
         case 2: // Compiler window
         {
-          WindowEntriesUpfront(&windows, &compilerWindow);
+          WindowSystemMoveToFront(windows, COMPILER_WINDOW_ID);
           float windowWidth = compilerWindow.window->rect.width;
           float windowHeight = compilerWindow.window->rect.height;
 
@@ -237,7 +223,7 @@ int main()
         
         case 3: // Output window
         {
-          WindowEntriesUpfront(&windows, &outputWindow);
+          WindowSystemMoveToFront(windows, OUTPUT_WINDOW_ID);
           Vector2 dragAbs = Vector2Add(dragStartPos, Vector2Negate(mouseDelta));
 
           outputWindow.window->rect.height = Clamp(dragAbs.y, clientArea.y, clientArea.height - clientArea.y);
@@ -251,6 +237,9 @@ int main()
         draggingID = -1;
       }  
     }
+#else
+    WindowSystemMove(windows);
+#endif
 
     if (IsFileDropped()) 
     {
@@ -410,7 +399,7 @@ int main()
 
     GuiAppMenu(&appMenu);
 
-    WindowEntriesDraw(&windows);
+    WindowSystemDraw(windows);
     
     // UI drags debug
     if (debugDrags)
@@ -468,7 +457,7 @@ int main()
     EndDrawing();
   }
 
-  WindowEntriesFree(&windows);
+  WindowSystemFree(windows);
   FreeFilePathList(&trackedFiles, TRACKED_FILES_CAPACITY);
   UnloadLayout(&outputWindow.layout);
   UnloadLayout(&compilerWindow.layout);

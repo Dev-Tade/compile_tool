@@ -4,6 +4,8 @@
 #include "raygui.h"
 #include "rglp.h"
 
+#include "window_system.h"
+
 typedef struct FilesWindow
 {
     RGLayout layout;
@@ -27,5 +29,8 @@ typedef struct FilesWindow
 
 void FilesWindowInit(FilesWindow *window, const char *filesWindowLayoutFile);
 void GuiFilesWindow(FilesWindow *state);
+
+bool FilesWindowDrag(FilesWindow *window, const WindowDragInput *input, WindowDragOutput *output);
+void FilesWindowMove(FilesWindow *window, const WindowMoveInput input);
 
 #endif //!FILES_WINDOW_H
